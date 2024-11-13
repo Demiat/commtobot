@@ -21,5 +21,3 @@ subscribe_message = 'Для доступа к боту необходимо по
 demmiat_bot_id = 5923622603
 test_channel_id = -1001877816404
 admin_id = 1043364488
-
-

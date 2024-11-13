@@ -3,21 +3,25 @@ Telegram-Bot
 Version 3.3 turbo (under construct)
 """
 
-import speech_recognition as sr
-import requests
-import logging
-import datetime as dt
-import config
 import os
+import datetime as dt
 import pickle
-import re
+import logging
 import importlib
-import portalocker as prtl
-from pydub import AudioSegment
-import telegram
-# обработчик CommandHandler фильтрует сообщения с командами
-from telegram.ext import filters, MessageHandler, ApplicationBuilder, CommandHandler, CallbackQueryHandler
 import json
+import re
+
+import requests
+from pydub import AudioSegment
+import speech_recognition as sr
+import portalocker as prtl
+import telegram
+from telegram.ext import (filters, MessageHandler, ApplicationBuilder,
+                          CommandHandler, CallbackQueryHandler
+                          )
+
+import config
+
 
 # Настроим модуль ведения журнала логов
 logging.basicConfig(
@@ -30,8 +34,9 @@ async def quest(update, context):
     """
     Общение с GPT ботом
     """
+    # Выйти, если сообщение пришло из канала, а не от отдельного пользователя
     if not re.match(r'^-\d+', str(update.effective_chat.id)) is None:
-        return None  # Выйти, если сообщение пришло из канала, а не от отдельного пользователя
+        return None
 
     username = update.effective_user.username
     user_id = update.effective_user.id
@@ -63,7 +68,8 @@ async def quest(update, context):
             with open(oganame, 'wb') as wr:
                 wr.write(answ.content)
 
-            AudioSegment.from_file(oganame).export(f'voice_{user_id}.wav', format='wav')
+            AudioSegment.from_file(oganame).export(
+                f'voice_{user_id}.wav', format='wav')
 
             g = sr.Recognizer()
             with sr.AudioFile(wavname) as source:
@@ -97,7 +103,7 @@ async def quest(update, context):
     else:
         data_users[user_id]['count_query'] += 1
         if data_users[user_id]['query_limit'] >= config.query_lim_at_day and now_day in data_users[user_id][
-            'last_enter']:
+                'last_enter']:
             await context.bot.send_message(chat_id=update.effective_chat.id,
                                            text='DemmiatBot: Вы исчерпали дневной лимит запросов! '
                                                 'Приходите завтра!')
@@ -125,7 +131,8 @@ async def quest(update, context):
     context_diag = ''.join(hys_responce)
 
     # Получение сначала токена доступа (живет 30 мин)
-    response_1 = requests.request("POST", config.giga_auth_url, headers=config.headers_1, data=config.payload_1)
+    response_1 = requests.request(
+        "POST", config.giga_auth_url, headers=config.headers_1, data=config.payload_1)
     response_json_1 = json.loads(response_1.text)
     giga_access_token = response_json_1['access_token']
 
@@ -152,21 +159,25 @@ async def quest(update, context):
     }
 
     # Ответ ИИ
-    response = requests.request("POST", config.giga_url, headers=headers_2, data=payload_2)
+    response = requests.request(
+        "POST", config.giga_url, headers=headers_2, data=payload_2)
     response_json = json.loads(response.text)
 
-    if '<img src=' in (imgsrc := response_json['choices'][0]['message']['content']): # Если прислано изображение
+    # Если прислано изображение
+    if '<img src=' in (imgsrc := response_json['choices'][0]['message']['content']):
         # imgsrc_id = re.match('.*<img src=\"(.+)(\" fuse=\".*)', imgsrc)
         imgsrc_id = imgsrc.split('\"')
-        urlimg = f'https://gigachat.devices.sberbank.ru/api/v1/files/{imgsrc_id[1]}/content'
+        urlimg = f'https://gigachat.devices.sberbank.ru/api/v1/files/{
+            imgsrc_id[1]}/content'
         headers_3 = {
             'Accept': 'application/jpg',
             'Authorization': f'Bearer {giga_access_token}'
         }
-        responseimg = requests.request("GET", urlimg, headers=headers_3, stream=True)
+        responseimg = requests.request(
+            "GET", urlimg, headers=headers_3, stream=True)
         await context.bot.send_photo(chat_id=update.effective_chat.id, photo=responseimg.raw, parse_mode='HTML')
         del responseimg
-    else: # Если прислан текст
+    else:  # Если прислан текст
         itog_answ = response_json['choices'][0]['message']['content']
         if data_users[user_id]['history'] == 'yes':
             await context.bot.send_message(chat_id=update.effective_chat.id, text=itog_answ, parse_mode='HTML',
@@ -214,7 +225,7 @@ async def start(update, context):
             f.flush()
         prtl.unlock(f)
     repl = cap.format(config.query_lim_at_day, data_users[user_id]['history'])
-    await context.bot.send_photo(chat_id=update.effective_chat.id, photo=open('dembot.jpg', 'rb'),
+    await context.bot.send_photo(chat_id=update.effective_chat.id, photo=open('static/dembot.jpg', 'rb'),
                                  caption=repl, reply_markup=keyboard_start, parse_mode='HTML')
 
 
@@ -237,7 +248,8 @@ async def button_handler(update, context):
             pickle.dump(data_users, f)
             f.flush()
             prtl.unlock(f)
-        repl = cap.format(config.query_lim_at_day, data_users[user_id]['history'])
+        repl = cap.format(config.query_lim_at_day,
+                          data_users[user_id]['history'])
         await context.bot.answer_callback_query(update.callback_query.id, text=txt, show_alert=False)
         try:
             await context.bot.edit_message_caption(chat_id=update.effective_chat.id,
@@ -293,14 +305,17 @@ async def mtu(update, context):
             data_users = pickle.load(f)
             keys_to_remove = []
             for usr_id in data_users:
-                usr_dt = dt.datetime.strptime(data_users[usr_id]['last_enter'], '%Y-%m-%d')
+                usr_dt = dt.datetime.strptime(
+                    data_users[usr_id]['last_enter'], '%Y-%m-%d')
                 t_delta = now_data - usr_dt
                 if t_delta.days > 15:  # if user long time ago have chat with bot, del user
                     await context.bot.send_message(chat_id=update.effective_chat.id,
                                                    text=f"Удален из-за старости {usr_id} -> {data_users[usr_id]['name']}")
-                    keys_to_remove.append(usr_id)  # Готовим старых пользвоателей для удаления
+                    # Готовим старых пользвоателей для удаления
+                    keys_to_remove.append(usr_id)
                     try:
-                        os.remove(fr'{cwd}/hys/{usr_id}.pkl')  # Del history with Bot
+                        # Del history with Bot
+                        os.remove(fr'{cwd}/hys/{usr_id}.pkl')
                     except Exception as e:
                         await context.bot.send_message(chat_id=update.effective_chat.id,
                                                        text=f'Не удалось удалить {usr_id}.pkl: {e}')
@@ -327,15 +342,18 @@ async def recalc(update, context):
         count_del = 0
         keys_to_remove = []
         for usr_id in data_users:
-            usr_dt = dt.datetime.strptime(data_users[usr_id]['last_enter'], '%Y-%m-%d')
+            usr_dt = dt.datetime.strptime(
+                data_users[usr_id]['last_enter'], '%Y-%m-%d')
             t_delta = now_data - usr_dt
             if t_delta.days > 15:  # if user long time ago have chat with bot, del user
                 count_del += 1
                 await context.bot.send_message(chat_id=update.effective_chat.id,
                                                text=f"Удален из-за старости {usr_id} -> {data_users[usr_id]['name']}")
-                keys_to_remove.append(usr_id)  # Готовим старых пользователей для удаления
+                # Готовим старых пользователей для удаления
+                keys_to_remove.append(usr_id)
                 try:
-                    os.remove(fr'{cwd}/hys/{usr_id}.pkl')  # Del history with Bot
+                    # Del history with Bot
+                    os.remove(fr'{cwd}/hys/{usr_id}.pkl')
                 except Exception as e:
                     await context.bot.send_message(chat_id=update.effective_chat.id,
                                                    text=f'Не удалось удалить {usr_id}.pkl: {e}')
@@ -373,7 +391,6 @@ if __name__ == '__main__':
 
     os.environ['REQUESTS_CA_BUNDLE'] = 'russian_trusted_root_ca.cer'
 
-
     if not os.path.exists('data_users.pkl'):  # if not exist file, create!
         fdu = open('data_users.pkl', 'wb')
         pickle.dump(dict(), fdu)
@@ -410,7 +427,8 @@ if __name__ == '__main__':
     # Говорим обработчику MessageHandler: если увидишь текстовое сообщение
     # (фильтр `Filters.text`) и это будет не команда
     # (фильтр ~Filters.command), то вызови функцию quest()
-    quest_handler = MessageHandler((filters.TEXT | filters.VOICE) & (~filters.COMMAND), quest)
+    quest_handler = MessageHandler(
+        (filters.TEXT | filters.VOICE) & (~filters.COMMAND), quest)
 
     # Регистрируем обработчики в приложение
     application.add_handler(mtu_handler)
@@ -425,17 +443,20 @@ if __name__ == '__main__':
 
     # KEYBOARDS
     button_list_start = [
-        [telegram.InlineKeyboardButton('Память робота', callback_data='memory')]
+        [telegram.InlineKeyboardButton(
+            'Память робота', callback_data='memory')]
     ]
     keyboard_start = telegram.InlineKeyboardMarkup(button_list_start)
 
     button_list_clean = [
-        [telegram.InlineKeyboardButton('Очистить диалог с роботом', callback_data='clean_dialog')]
+        [telegram.InlineKeyboardButton(
+            'Очистить диалог с роботом', callback_data='clean_dialog')]
     ]
     keyboard_clean = telegram.InlineKeyboardMarkup(button_list_clean)
 
     button_list_channel = [
-        [telegram.InlineKeyboardButton("АНКА ПАРТИZАНКА", url='https://t.me/anka_partizanka1010')]
+        [telegram.InlineKeyboardButton(
+            "АНКА ПАРТИZАНКА", url='https://t.me/anka_partizanka1010')]
     ]
     keyboard_anka = telegram.InlineKeyboardMarkup(button_list_channel)
     # <
