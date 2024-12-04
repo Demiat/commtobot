@@ -31,9 +31,7 @@ logging.basicConfig(
 
 
 async def quest(update, context):
-    """
-    Общение с GPT ботом
-    """
+    """Общение с GPT ботом."""
     # Выйти, если сообщение пришло из канала, а не от отдельного пользователя
     if not re.match(r'^-\d+', str(update.effective_chat.id)) is None:
         return None
@@ -41,17 +39,25 @@ async def quest(update, context):
     username = update.effective_user.username
     user_id = update.effective_user.id
 
-    await context.bot.send_chat_action(chat_id=update.effective_user.id, action=telegram.constants.ChatAction.TYPING)
+    await context.bot.send_chat_action(
+        chat_id=update.effective_user.id,
+        action=telegram.constants.ChatAction.TYPING
+    )
 
     # Проверка подписки пользователя на канал телеграмма
     # try:
-    #     chat_member = await context.bot.get_chat_member(config.id_channel_telegram, user_id)
-    # except:
+    #     chat_member = await context.bot.get_chat_member(
+    #         config.id_channel_telegram, user_id
+    #     )
+    # except Exception:
     #     pass
     # else:
     #     if chat_member['status'] == 'left':
-    #         await context.bot.send_message(chat_id=update.effective_chat.id, text=config.subscribe_message,
-    #                                        reply_markup=keyboard_anka)
+    #         await context.bot.send_message(
+    #             chat_id=update.effective_chat.id,
+    #             text=config.subscribe_message,
+    #             reply_markup=keyboard_anka
+    #         )
     #         return None
     # <
 
@@ -77,12 +83,16 @@ async def quest(update, context):
             try:
                 au_to_text = g.recognize_google(audio, language='ru')
             except sr.UnknownValueError:
-                await context.bot.send_message(chat_id=update.effective_chat.id,
-                                               text='Речь неразборчива! Повторите запрос!')
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text='Речь неразборчива! Повторите запрос!'
+                )
                 return None
             except sr.RequestError as e:
-                await context.bot.send_message(chat_id=update.effective_chat.id,
-                                               text=f'Ошибка связи: {e}! Повторите запрос!')
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f'Ошибка связи: {e}! Повторите запрос!'
+                )
                 return None
             from_voice_flag = True
 
@@ -90,7 +100,7 @@ async def quest(update, context):
             os.remove(wavname)
     # <
 
-    now = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    now = dt.datetime.now().strftime('%Y-%m-%d %H:%M')
     now_day = now[:-6]
 
     f = open('data_users.pkl', 'r+b')
@@ -98,15 +108,24 @@ async def quest(update, context):
     data_users = pickle.load(f)  # Получить базу данных пользователей
 
     if user_id not in data_users:  # Если пользователь новый
-        data_users[user_id] = {'name': username, 'count_query': 0, 'query_limit': 0, 'count_tokens': 0,
-                               'last_enter': now_day, 'history': 'no'}
+        data_users[user_id] = {
+            'name': username,
+            'count_query': 0,
+            'query_limit': 0,
+            'count_tokens': 0,
+            'last_enter': now_day,
+            'history': 'no'
+        }
     else:
         data_users[user_id]['count_query'] += 1
-        if data_users[user_id]['query_limit'] >= config.query_lim_at_day and now_day in data_users[user_id][
-                'last_enter']:
-            await context.bot.send_message(chat_id=update.effective_chat.id,
-                                           text='DemmiatBot: Вы исчерпали дневной лимит запросов! '
-                                                'Приходите завтра!')
+        if (
+            data_users[user_id]['query_limit'] >= config.query_lim_at_day
+            and now_day in data_users[user_id]['last_enter']
+        ):
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text='DemmiatBot: Вы исчерпали дневной лимит запросов!'
+            )
             return None
         elif now_day not in data_users[user_id]['last_enter']:
             data_users[user_id]['query_limit'] = 0
@@ -132,7 +151,11 @@ async def quest(update, context):
 
     # Получение сначала токена доступа (живет 30 мин)
     response_1 = requests.request(
-        "POST", config.giga_auth_url, headers=config.headers_1, data=config.payload_1)
+        "POST",
+        config.giga_auth_url,
+        headers=config.headers_1,
+        data=config.payload_1
+    )
     response_json_1 = json.loads(response_1.text)
     giga_access_token = response_json_1['access_token']
 
@@ -164,7 +187,9 @@ async def quest(update, context):
     response_json = json.loads(response.text)
 
     # Если прислано изображение
-    if '<img src=' in (imgsrc := response_json['choices'][0]['message']['content']):
+    if '<img src=' in (
+        imgsrc := response_json['choices'][0]['message']['content']
+    ):
         # imgsrc_id = re.match('.*<img src=\"(.+)(\" fuse=\".*)', imgsrc)
         imgsrc_id = imgsrc.split('\"')
         urlimg = f'https://gigachat.devices.sberbank.ru/api/v1/files/{
@@ -174,16 +199,31 @@ async def quest(update, context):
             'Authorization': f'Bearer {giga_access_token}'
         }
         responseimg = requests.request(
-            "GET", urlimg, headers=headers_3, stream=True)
-        await context.bot.send_photo(chat_id=update.effective_chat.id, photo=responseimg.raw, parse_mode='HTML')
+            "GET",
+            urlimg,
+            headers=headers_3,
+            stream=True
+        )
+        await context.bot.send_photo(
+            chat_id=update.effective_chat.id,
+            photo=responseimg.raw,
+            parse_mode='HTML'
+        )
         del responseimg
     else:  # Если прислан текст
         itog_answ = response_json['choices'][0]['message']['content']
         if data_users[user_id]['history'] == 'yes':
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=itog_answ, parse_mode='HTML',
-                                           reply_markup=keyboard_clean)
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=itog_answ, parse_mode='HTML',
+                reply_markup=keyboard_clean
+            )
         else:
-            await context.bot.send_message(chat_id=update.effective_chat.id, text=itog_answ, parse_mode='HTML')
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text=itog_answ,
+                parse_mode='HTML'
+            )
 
         # Запись истории сообщений
         if data_users[user_id]['history'] == 'yes':
@@ -218,15 +258,26 @@ async def start(update, context):
         prtl.lock(f, prtl.LOCK_EX)
         data_users = pickle.load(f)
         if user_id not in data_users:  # if user new
-            data_users[user_id] = {'name': username, 'count_query': 0, 'query_limit': 0, 'count_tokens': 0,
-                                   'last_enter': now_day, 'history': 'no'}
+            data_users[user_id] = {
+                'name': username,
+                'count_query': 0,
+                'query_limit': 0,
+                'count_tokens': 0,
+                'last_enter': now_day,
+                'history': 'no'
+            }
             f.seek(0)
             pickle.dump(data_users, f)
             f.flush()
         prtl.unlock(f)
     repl = cap.format(config.query_lim_at_day, data_users[user_id]['history'])
-    await context.bot.send_photo(chat_id=update.effective_chat.id, photo=open('static/dembot.jpg', 'rb'),
-                                 caption=repl, reply_markup=keyboard_start, parse_mode='HTML')
+    await context.bot.send_photo(
+        chat_id=update.effective_chat.id,
+        photo=open('static/dembot.jpg', 'rb'),
+        caption=repl,
+        reply_markup=keyboard_start,
+        parse_mode='HTML'
+    )
 
 
 async def button_handler(update, context):
@@ -389,7 +440,7 @@ async def nofu(update, context):
 
 if __name__ == '__main__':
 
-    os.environ['REQUESTS_CA_BUNDLE'] = 'russian_trusted_root_ca.cer'
+    os.environ['REQUESTS_CA_BUNDLE'] = '/static/russian_trusted_root_ca.cer'
 
     if not os.path.exists('data_users.pkl'):  # if not exist file, create!
         fdu = open('data_users.pkl', 'wb')
