@@ -192,8 +192,10 @@ async def quest(update, context):
     ):
         # imgsrc_id = re.match('.*<img src=\"(.+)(\" fuse=\".*)', imgsrc)
         imgsrc_id = imgsrc.split('\"')
-        urlimg = f'https://gigachat.devices.sberbank.ru/api/v1/files/{
-            imgsrc_id[1]}/content'
+        urlimg = (
+            f'https://gigachat.devices.sberbank.ru/api/v1/files/'
+            f'{imgsrc_id[1]}/content'
+        )
         headers_3 = {
             'Accept': 'application/jpg',
             'Authorization': f'Bearer {giga_access_token}'
@@ -301,22 +303,39 @@ async def button_handler(update, context):
             prtl.unlock(f)
         repl = cap.format(config.query_lim_at_day,
                           data_users[user_id]['history'])
-        await context.bot.answer_callback_query(update.callback_query.id, text=txt, show_alert=False)
+        await context.bot.answer_callback_query(
+            update.callback_query.id,
+            text=txt,
+            show_alert=False
+        )
         try:
-            await context.bot.edit_message_caption(chat_id=update.effective_chat.id,
-                                                   message_id=query.message.message_id,
-                                                   caption=repl, reply_markup=keyboard_start, parse_mode='HTML')
-        except:
-            await context.bot.answer_callback_query(update.callback_query.id, text='Ошибка запроса смены сообщения!',
-                                                    show_alert=False)
+            await context.bot.edit_message_caption(
+                chat_id=update.effective_chat.id,
+                message_id=query.message.message_id,
+                caption=repl,
+                reply_markup=keyboard_start,
+                parse_mode='HTML'
+            )
+        except Exception:
+            await context.bot.answer_callback_query(
+                update.callback_query.id,
+                text='Ошибка запроса смены сообщения!',
+                show_alert=False
+            )
     elif button_data == 'clean_dialog':
         if os.path.exists(f'{cwd}/hys/{user_id}.pkl'):
             os.remove(f'{cwd}/hys/{user_id}.pkl')
-            await context.bot.answer_callback_query(update.callback_query.id,
-                                                    text='Контекст общения с роботом удалён!', show_alert=False)
+            await context.bot.answer_callback_query(
+                update.callback_query.id,
+                text='Контекст общения с роботом удалён!',
+                show_alert=False
+            )
         else:
-            await context.bot.answer_callback_query(update.callback_query.id,
-                                                    text='Контекст общения с роботом отсутствует!', show_alert=False)
+            await context.bot.answer_callback_query(
+                update.callback_query.id,
+                text='Контекст общения с роботом отсутствует!',
+                show_alert=False
+            )
 
 
 async def info(update, context):
@@ -326,8 +345,13 @@ async def info(update, context):
     prtl.unlock(f)
     f.close()
     user_id = update.effective_user.id
-    await context.bot.send_message(chat_id=update.effective_chat.id,
-                                   text=f'Отправленных запросов {data_users[user_id]["query_limit"]} из {config.query_lim_at_day}')
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=(
+            f'Отправленных запросов {data_users[user_id]["query_limit"]} '
+            'из {config.query_lim_at_day}'
+        )
+    )
 
 
 async def mtu(update, context):
@@ -338,18 +362,28 @@ async def mtu(update, context):
         up = True if '/mtu u' in update.message.text else False
         if match:
             try:
-                await context.bot.send_message(chat_id=match.group(1), text=match.group(2))
-            except:
-                await context.bot.send_message(chat_id=update.effective_chat.id,
-                                               text=f'Не удалось связаться с {match.group(1)}')
+                await context.bot.send_message(
+                    chat_id=match.group(1),
+                    text=match.group(2)
+                )
+            except Exception:
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=f'Не удалось связаться с {match.group(1)}'
+                )
             return None
         elif match_all or dw or up:
             if match_all:
                 mess_to_users = match_all.group(1)
             elif dw:
-                mess_to_users = 'Я готовлюсь отключиться для профилактики. При включении сообщу!'
+                mess_to_users = (
+                    'Я готовлюсь отключиться для профилактики. '
+                    'При включении сообщу!'
+                )
             elif up:
-                mess_to_users = 'Протокол включения выполнен! Готов к обслуживанию!'
+                mess_to_users = (
+                    'Протокол включения выполнен! Готов к обслуживанию!'
+                )
             now_data = dt.datetime.now()
             f = open('data_users.pkl', 'r+b')
             prtl.lock(f, prtl.LOCK_EX)
@@ -359,23 +393,36 @@ async def mtu(update, context):
                 usr_dt = dt.datetime.strptime(
                     data_users[usr_id]['last_enter'], '%Y-%m-%d')
                 t_delta = now_data - usr_dt
-                if t_delta.days > 15:  # if user long time ago have chat with bot, del user
-                    await context.bot.send_message(chat_id=update.effective_chat.id,
-                                                   text=f"Удален из-за старости {usr_id} -> {data_users[usr_id]['name']}")
+                # if user long time ago have chat with bot, del user
+                if t_delta.days > 15:
+                    await context.bot.send_message(
+                        chat_id=update.effective_chat.id,
+                        text=(
+                            f'Удален из-за старости {usr_id} -> '
+                            f"{data_users[usr_id]['name']}"
+                        )
+                    )
                     # Готовим старых пользвоателей для удаления
                     keys_to_remove.append(usr_id)
                     try:
                         # Del history with Bot
                         os.remove(fr'{cwd}/hys/{usr_id}.pkl')
                     except Exception as e:
-                        await context.bot.send_message(chat_id=update.effective_chat.id,
-                                                       text=f'Не удалось удалить {usr_id}.pkl: {e}')
+                        await context.bot.send_message(
+                            chat_id=update.effective_chat.id,
+                            text=f'Не удалось удалить {usr_id}.pkl: {e}'
+                        )
                 else:
                     try:
-                        await context.bot.send_message(chat_id=usr_id, text=f'DemmiatBot: {mess_to_users}')
-                    except:
-                        await context.bot.send_message(chat_id=update.effective_chat.id,
-                                                       text=f'Не удалось связаться с {usr_id}')
+                        await context.bot.send_message(
+                            chat_id=usr_id,
+                            text=f'DemmiatBot: {mess_to_users}'
+                        )
+                    except Exception:
+                        await context.bot.send_message(
+                            chat_id=update.effective_chat.id,
+                            text=f'Не удалось связаться с {usr_id}'
+                        )
             for key in keys_to_remove:  # Удаляем старых пользователей
                 del data_users[key]
             f.seek(0)
@@ -396,22 +443,32 @@ async def recalc(update, context):
             usr_dt = dt.datetime.strptime(
                 data_users[usr_id]['last_enter'], '%Y-%m-%d')
             t_delta = now_data - usr_dt
-            if t_delta.days > 15:  # if user long time ago have chat with bot, del user
+            # if user long time ago have chat with bot, del user
+            if t_delta.days > 15:
                 count_del += 1
-                await context.bot.send_message(chat_id=update.effective_chat.id,
-                                               text=f"Удален из-за старости {usr_id} -> {data_users[usr_id]['name']}")
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id,
+                    text=(
+                        f'Удален из-за старости {usr_id} -> '
+                        f"{data_users[usr_id]['name']}"
+                    )
+                )
                 # Готовим старых пользователей для удаления
                 keys_to_remove.append(usr_id)
                 try:
                     # Del history with Bot
                     os.remove(fr'{cwd}/hys/{usr_id}.pkl')
                 except Exception as e:
-                    await context.bot.send_message(chat_id=update.effective_chat.id,
-                                                   text=f'Не удалось удалить {usr_id}.pkl: {e}')
+                    await context.bot.send_message(
+                        chat_id=update.effective_chat.id,
+                        text=f'Не удалось удалить {usr_id}.pkl: {e}'
+                    )
         for key in keys_to_remove:  # Удаляем старых пользователей
             del data_users[key]
-        await context.bot.send_message(chat_id=update.effective_chat.id,
-                                       text=f"Удалено: {count_del}, активных: {len(data_users)}")
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f'Удалено: {count_del}, активных: {len(data_users)}'
+        )
         f.seek(0)
         pickle.dump(data_users, f)
         f.flush()
@@ -419,13 +476,18 @@ async def recalc(update, context):
 
 
 async def mir(update, context):
-    await context.bot.send_document(chat_id=update.effective_chat.id, document=open('unknowability.pdf', 'rb'))
+    await context.bot.send_document(
+        chat_id=update.effective_chat.id,
+        document=open('unknowability.pdf', 'rb')
+    )
 
 
 async def rel(update, context):
     importlib.reload(config)
-    await context.bot.send_message(chat_id=update.effective_chat.id,
-                                   text='Config перезагружен!')
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text='Config перезагружен!'
+    )
 
 
 async def nofu(update, context):
@@ -434,8 +496,10 @@ async def nofu(update, context):
     data_users = pickle.load(f)
     prtl.unlock(f)
     f.close()
-    await context.bot.send_message(chat_id=update.effective_chat.id,
-                                   text=f"Пользователей робота: {len(data_users)}")
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=f'Пользователей робота: {len(data_users)}'
+    )
 
 
 if __name__ == '__main__':
@@ -449,7 +513,7 @@ if __name__ == '__main__':
 
     cwd = os.getcwd()
 
-    cap = '''Привет! Я Demmiat бот-ретранслятор 
+    cap = '''Привет! Я Demmiat бот-ретранслятор
 генеративного предварительно обученного преобразователя (GPT).
 Мой внешний вид сформирован искусственной нейротической сетью.
 
@@ -474,7 +538,8 @@ if __name__ == '__main__':
     nofu_handler = CommandHandler('nofu', nofu)
     recalc_handler = CommandHandler('recalc', recalc)
 
-    # Создаем обработчик текстовых сообщений,которые будут поступать в функцию quest()
+    # Создаем обработчик текстовых сообщений,которые будут поступать в функцию
+    # quest()
     # Говорим обработчику MessageHandler: если увидишь текстовое сообщение
     # (фильтр `Filters.text`) и это будет не команда
     # (фильтр ~Filters.command), то вызови функцию quest()
