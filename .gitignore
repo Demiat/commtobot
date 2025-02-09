@@ -1,4 +1,6 @@
 # По проекту
+hys/
+data_users.pkl
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

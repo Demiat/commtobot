@@ -253,7 +253,7 @@ async def quest(update, context):
 async def start(update, context):
     user_id = update.effective_user.id
     username = update.effective_user.username
-    now = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
+    now = dt.datetime.now().strftime("%Y-%m-%d")
     now_day = now[:-6]
 
     with open('data_users.pkl', 'r+b') as f:
@@ -272,7 +272,7 @@ async def start(update, context):
             pickle.dump(data_users, f)
             f.flush()
         prtl.unlock(f)
-    repl = cap.format(config.query_lim_at_day, data_users[user_id]['history'])
+    repl = cap.format(config.QUERY_LIM_AT_DAY, data_users[user_id]['history'])
     await context.bot.send_photo(
         chat_id=update.effective_chat.id,
         photo=open('static/dembot.jpg', 'rb'),
@@ -301,7 +301,7 @@ async def button_handler(update, context):
             pickle.dump(data_users, f)
             f.flush()
             prtl.unlock(f)
-        repl = cap.format(config.query_lim_at_day,
+        repl = cap.format(config.QUERY_LIM_AT_DAY,
                           data_users[user_id]['history'])
         await context.bot.answer_callback_query(
             update.callback_query.id,
@@ -511,7 +511,7 @@ if __name__ == '__main__':
         pickle.dump(dict(), fdu)
         fdu.close()
 
-    cwd = os.getcwd()
+    pwd = os.getcwd()
 
     cap = '''Привет! Я Demmiat бот-ретранслятор
 генеративного предварительно обученного преобразователя (GPT).
@@ -523,7 +523,7 @@ if __name__ == '__main__':
 /info - вывод технической информации.
 /mir - отдать статью создателя о непознаваемом Мире и человеке в нём!'''
 
-    TOKEN = config.demmiatbot_token
+    TOKEN = '6133125269:AAEHIJUZRYYDDmHgjtcg_niL-BDjqvSh4tg'
     # Cоздание экземпляра бота через ApplicationBuilder
     application = ApplicationBuilder().token(TOKEN).build()
 
