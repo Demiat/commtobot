@@ -12,6 +12,7 @@ import logging.config
 import importlib
 import json
 import re
+import signal
 
 import requests
 import speech_recognition as sr
@@ -73,7 +74,7 @@ def open_database():
     return data_users, f
 
 
-def close_database(f, data_users=None):  # none убрать если не надо
+def close_database(f, data_users):
     f.seek(0)
     pickle.dump(data_users, f)
     f.flush()
@@ -101,6 +102,8 @@ def send_message(pars_to_send, stype=None):
                 bot.send_message(**pars_to_send)
             case 'photo':
                 bot.send_photo(**pars_to_send)
+            case 'typing':
+                bot.send_chat_action(**pars_to_send)
             case _:
                 raise ValueError(ms.UNKNOWN_STYPE.format(stype=stype))
         logger.debug(
@@ -120,11 +123,11 @@ def handle_callback(call):
     data_users, f = open_database()
     if call.data == 'memory':
         store_hys = data_users[user_id]['history']
-        if store_hys == 'ДА':
-            data_users[user_id]['history'] = 'НЕТ'
+        if store_hys == ms.STORE_HYS_YES:
+            data_users[user_id]['history'] = ms.STORE_HYS_NO
             txt = ms.BOT_OFF_MEMORY
         else:
-            data_users[user_id]['history'] = 'ДА'
+            data_users[user_id]['history'] = ms.STORE_HYS_YES
             txt = ms.BOT_ON_MEMORY
         repl = ms.CAP.format(
             name=call.from_user.first_name,
@@ -165,7 +168,7 @@ def wake_up(message):
         }
     close_database(f, data_users)
 
-    pars_to_send = dict(
+    send_message(dict(
         chat_id=message.chat.id,
         photo=open(config.DEMBOT_PHOTO, 'rb'),
         caption=ms.CAP.format(
@@ -175,8 +178,30 @@ def wake_up(message):
         ),
         reply_markup=bot_memory_keyboard,
         parse_mode='HTML'
+    ), stype='photo')
+
+
+@bot.message_handler()
+def quest(message):
+    """Ретранслятор к GPT."""
+    # Выйти, если сообщение пришло из канала, а не от отдельного пользователя
+    if re.match(r'^-\d+', str(message.from_user.id)):
+        return None
+
+    username = message.chat.username
+    user_id = message.chat.id
+
+    send_message(
+        dict(chat_id=message.chat.id, action='typing'), stype='typing'
     )
-    send_message(pars_to_send, stype='photo')
+
+
+def stop_bot(signum, frame):
+    logger.info("Завершение работы бота...")
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, stop_bot)
 
 
 def main():
@@ -189,6 +214,8 @@ def main():
         logger.info(ms.START_LOG_MESSAGE)
         try:
             bot.polling()
+        except BaseException:
+            exit(1)
         except Exception as e:
             logger.exception(ms.FRONTIER_ERROR.format(e=e))
             time.sleep(10)
