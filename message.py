@@ -3,11 +3,20 @@ NO_ENVS = 'Отсутствуют следующие переменные окр
 SUBSCRIBE_MESSAGE = (
     'Для доступа к боту необходимо подписаться на телеграмм-канал!'
 )
+AUTH_TOKEN_REQUESTED = 'Пытаемся получить новый access_token!..'
 STORE_HYS_YES = 'ДА'
 STORE_HYS_NO = 'НЕТ'
+OPEN_FL_ERROR = 'Не удалось открыть файл истории: {e}'
 UNKNOWN_STYPE = 'Неизвестный тип отправки пользователю: {stype}'
 NO_SPEECH = 'Речь неразборчива! Повторите запрос!'
 CONNECT_ERROR = 'Ошибка связи: {e}! Повторите запрос!'
+BAD_CONNECTION = (
+    'Нет соединения с эндпоинтом: {url}, {headers}, {data}. '
+    'Ошибка исключения: {exc_error}.'
+)
+BAD_HTTP_STATUS = (
+    'Проблема для {url}, {headers}, {data}: status code: {status_code}.'
+)
 MESSAGE_WAS_SENT = 'Сообщение отправлено в {chat_id}.'
 BAD_SEND_MESSAGE = (
     'Невозможно отправить сообщение в чат {chat_id}! Ошибка: {exc_error}.'
@@ -31,7 +40,6 @@ HOW_MANY_REQUESTS = 'Отправленных запросов {how_req} из {l
 
 NO_USER_CONNECT = 'Не удалось связаться с {user_id}'
 DEL_OLD_USER = 'Удален из-за старости {usr_id} -> {name}'
-ERROR_DEL_USER_PKL = 'Не удалось удалить {usr_id}.pkl: {e}'
 REMAKING_USERS = 'Пользователей удалено: {count_del}, активных: {num_of_users}'
 HOW_MANY_USERS = 'Пользователей робота: {num_of_users}'
 
@@ -44,5 +52,4 @@ CAP = '''Привет, <b>{name}</b>! Я Demmiat бот-ретранслятор
 Дневной лимит запросов: {lim_at_day}
 Память робота включена: <b>{bot_on_mem}</b>
 
-/info - вывод технической информации.
-/mir - отдать статью создателя о непознаваемом Мире и человеке в нём!'''
+/info - вывод технической информации.'''
