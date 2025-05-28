@@ -126,7 +126,7 @@ button_bot_mem_on_message = types.InlineKeyboardButton(
 )
 bot_memory_keyboard_on_message.add(button_bot_mem_on_message)
 
-if not os.path.exists('data_users.pkl'):  # if not exist file, create!
+if not os.path.exists('data_users.pkl'):  # Создать файл базы данных
     with open('data_users.pkl', 'wb') as fl:
         pickle.dump({}, fl)
 
