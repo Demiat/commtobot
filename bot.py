@@ -4,6 +4,7 @@ Version 1.0
 """
 
 import os
+import sys
 import datetime as dt
 import pickle
 import time
@@ -65,8 +66,9 @@ PARS_TO_AUTH_TOKEN = dict(
 TYPE_PHOTO = 'photo'
 TYPE_TEXT = 'text'
 TYPE_TYPING = 'typing'
-MEMORY_LENGHT = 20
-DAY_TO_LEFT = 15
+TYPE_CALLBACK = 'answer_callback_query'
+TYPE_EDIT = 'edit_message_caption'
+STORE_PATH = os.getcwd() + '/hys/{user_id}.pkl'
 
 
 def send_request(pars_to_send, attempts_left=2):
@@ -107,8 +109,6 @@ def send_request(pars_to_send, attempts_left=2):
 # Начальное получение токена для ответов gpt
 acc_token = send_request(PARS_TO_AUTH_TOKEN).get('access_token')
 
-PWD = os.getcwd()
-
 bot = TeleBot(token=DEMIAT_BOT_TOKEN)
 
 # КЛАВИАТУРЫ
@@ -126,7 +126,7 @@ button_bot_mem_on_message = types.InlineKeyboardButton(
 )
 bot_memory_keyboard_on_message.add(button_bot_mem_on_message)
 
-if not os.path.exists('data_users.pkl'):  # Создать файл базы данных
+if not os.path.exists('data_users.pkl'):  # if not exist file, create!
     with open('data_users.pkl', 'wb') as fl:
         pickle.dump({}, fl)
 
@@ -193,8 +193,8 @@ def send_message(pars_to_send, stype=None):
 @bot.callback_query_handler(func=None)
 def handle_callback(call):
     user_id = call.from_user.id
-    data_users, f = open_database()
     if call.data == 'memory':
+        data_users, f = open_database()
         store_hys = data_users[user_id]['history']
         if store_hys == ms.STORE_HYS_YES:
             data_users[user_id]['history'] = ms.STORE_HYS_NO
@@ -212,7 +212,7 @@ def handle_callback(call):
         send_message(dict(
             callback_query_id=call.id,
             text=txt
-        ), stype='answer_callback_query'
+        ), stype=TYPE_CALLBACK
         )
         send_message(dict(
             chat_id=call.message.chat.id,
@@ -220,19 +220,19 @@ def handle_callback(call):
             caption=repl,
             reply_markup=bot_memory_keyboard,
             parse_mode='HTML'
-        ), stype='edit_message_caption'
+        ), stype=TYPE_EDIT
         )
     elif call.data == 'clean_dialog':
         pars_to_send = dict(
             callback_query_id=call.id,
             show_alert=False
         )
-        if os.path.exists(f'{PWD}/hys/{user_id}.pkl'):
-            os.remove(f'{PWD}/hys/{user_id}.pkl')
+        if os.path.exists(STORE_PATH.format(user_id=user_id)):
+            os.remove(STORE_PATH.format(user_id=user_id))
             pars_to_send['text'] = ms.DEL_BOT_CONTEXT
         else:
             pars_to_send['text'] = ms.NO_BOT_CONTEXT
-        send_message(pars_to_send, stype='answer_callback_query')
+        send_message(pars_to_send, stype=TYPE_CALLBACK)
 
 
 @bot.message_handler(commands=['start'])
@@ -287,7 +287,7 @@ def conf_reload(message):
     send_message(dict(
         chat_id=message.from_user.id,
         text=ms.CONF_RELOAD
-        ), stype=TYPE_TEXT
+    ), stype=TYPE_TEXT
     )
 
 
@@ -298,27 +298,27 @@ def recalc(message):
     data_users, f = open_database()
     count_del = 0
     keys_to_remove = []
-    for usr_id in data_users:
+    for user_id in data_users:
         usr_dt = dt.datetime.strptime(
-            data_users[usr_id]['last_enter'], '%Y-%m-%d'
+            data_users[user_id]['last_enter'], '%Y-%m-%d'
         )
         t_delta = now_data - usr_dt
         # Если пользователь древнее константных дней
-        if t_delta.days > DAY_TO_LEFT:
+        if t_delta.days > config.DAY_TO_LEFT:
             count_del += 1
             send_message(dict(
                 chat_id=MY_TELEGRAM_ID,
                 text=ms.DEL_OLD_USER.format(
-                    usr_id=usr_id,
-                    name=data_users[usr_id]['name']
-                    )
-                ), stype=TYPE_TEXT
+                    user_id=user_id,
+                    name=data_users[user_id]['name']
+                )
+            ), stype=TYPE_TEXT
             )
             # Готовим старых пользователей для удаления
-            keys_to_remove.append(usr_id)
+            keys_to_remove.append(user_id)
             # Удаляем историю старого пользователя
-            if os.path.exists(f'{PWD}/hys/{usr_id}.pkl'):
-                os.remove(fr'{PWD}/hys/{usr_id}.pkl')
+            if os.path.exists(STORE_PATH.format(user_id=user_id)):
+                os.remove(STORE_PATH.format(user_id=user_id))
     for key in keys_to_remove:  # Удаляем старых пользователей
         del data_users[key]
     send_message(dict(
@@ -326,8 +326,8 @@ def recalc(message):
         text=ms.REMAKING_USERS.format(
             count_del=count_del,
             num_of_users=len(data_users)
-            )
-        ), stype=TYPE_TEXT
+        )
+    ), stype=TYPE_TEXT
     )
     close_database(f, data_users)
 
@@ -345,8 +345,6 @@ def quest(message):
         dict(chat_id=user_id, action='typing'), stype=TYPE_TYPING
     )
 
-    # Откроем базу данных для работы с данными data_users
-    # И сразу закроем на время формирования ответа ИИ
     data_users, f = open_database()
     close_database(f, data_users)
 
@@ -374,7 +372,7 @@ def quest(message):
 
         g = sr.Recognizer()
         with sr.AudioFile(wavname) as source:
-            audio = g.record(source)  # read the entire voice file
+            audio = g.record(source)
         try:
             au_to_text = g.recognize_google(audio, language='ru')
         except sr.UnknownValueError as e:
@@ -415,8 +413,8 @@ def quest(message):
     # Читаем историю сообщений
     hys_responce = []
     if data_users[user_id]['history'] == ms.STORE_HYS_YES:
-        if os.path.exists(f'{PWD}/hys/{user_id}.pkl'):
-            with open(fr'{PWD}/hys/{user_id}.pkl', 'rb') as fl:
+        if os.path.exists(STORE_PATH.format(user_id=user_id)):
+            with open(STORE_PATH.format(user_id=user_id), 'rb') as fl:
                 hys_responce = pickle.load(fl)
 
     # Формирование вопроса вместе с историей сообщений
@@ -486,8 +484,8 @@ def quest(message):
             # Отправим клавиатуру в сообщении
             pars_to_send['reply_markup'] = bot_memory_keyboard_on_message
             # Запишем историю сообщений
-            with open(f'{PWD}/hys/{user_id}.pkl', 'wb') as fl:
-                if len(hys_responce) > MEMORY_LENGHT:
+            with open(STORE_PATH.format(user_id=user_id), 'wb') as fl:
+                if len(hys_responce) > config.MEMORY_LENGHT:
                     del hys_responce[:2]
                 hys_responce.append('assistant: ' + text_from_ai)
                 pickle.dump(hys_responce, fl)
@@ -509,7 +507,7 @@ def main():
         try:
             bot.polling()
         except Exception:
-            logger.exception(ms.FRONTIER_ERROR.format(
+            logger.error(ms.FRONTIER_ERROR.format(
                 e=traceback.format_exc(limit=1)
             ))
         else:
@@ -520,4 +518,27 @@ def main():
 
 if __name__ == '__main__':
     logging.config.dictConfig(get_config(__name__, __file__))
-    main()
+
+    if len(sys.argv) > 1 and sys.argv[1] == 'test':
+        """Код самотестирования:::"""
+        from unittest import TestCase, mock, main as uni_main
+
+        class TestReq(TestCase):
+            """Тестирует бота."""
+
+            @classmethod
+            def setUpClass(cls):
+                """Фикстуры."""
+                cls.ReqEx = requests.RequestException
+                cls.JSON = []
+
+            @mock.patch('requests.request')
+            def test_raised(self, rq):
+                """Тестируем Сбой Сети."""
+                rq.side_effect = self.ReqEx('Мок-падение!!!')
+                main()
+
+        uni_main(argv=[sys.argv[0]])
+
+    else:
+        main()  # Запуск основной программы
