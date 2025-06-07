@@ -38,14 +38,16 @@ python -m venv venv
 ```sudo apt install ffmpeg```
 
 6)Установить доверенный сертификат
-```curl -k "https://gu-st.ru/content/Other/doc/russian_trusted_root_ca.cer" -w "\n" >> $(python -m certifi)```
+```
+curl -k "https://gu-st.ru/content/Other/doc/russian_trusted_root_ca.cer" -w "\n" >> $(python -m certifi)
+```
 
 7)Создать и заполнить файл .env:
-DEMIAT_BOT_ID = <id вашего бота>
-DEMIAT_BOT_TOKEN = <token вашего бота>
-MY_TELEGRAM_ID = <id вашей учетки телеграм>
-SBER_AUTH_TOKEN = <токен от СБЕРА>
-RqUID = <уникальный идентификатор запроса для СБЕРА>
+- DEMIAT_BOT_ID = <id вашего бота>
+- DEMIAT_BOT_TOKEN = <token вашего бота>
+- MY_TELEGRAM_ID = <id вашей учетки телеграм>
+- SBER_AUTH_TOKEN = <токен от СБЕРА>
+- RqUID = <уникальный идентификатор запроса для СБЕРА>
 
 Ключ авторизации SBER_AUTH_TOKEN получается в личном кабинете Gigachat API
 и передается в запросе на получение Access token
