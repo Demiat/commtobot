@@ -68,7 +68,7 @@ TYPE_TEXT = 'text'
 TYPE_TYPING = 'typing'
 TYPE_CALLBACK = 'answer_callback_query'
 TYPE_EDIT = 'edit_message_caption'
-STORE_PATH = os.getcwd() + '/hys/{user_id}.pkl'
+STORE_PATH = f'{os.path.dirname(os.path.abspath(__file__))}' + '/hys/{user_id}.pkl'
 
 
 def send_request(pars_to_send, attempts_left=2):

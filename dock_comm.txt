@@ -1,0 +1,2 @@
+docker build -t bot_img:v1 .
+docker run -it --rm  --name bot_cont bot_img:v1

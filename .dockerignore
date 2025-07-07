@@ -1,0 +1,9 @@
+.git
+__pycache__/
+*.pyc
+.vscode/
+*.log
+venv
+data_users.pkl
+hys/
+.gitignore
